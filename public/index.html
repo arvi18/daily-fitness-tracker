@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Daily Fitness Tracker</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 0 16px;
+      }
+
+      textarea,
+      input,
+      button {
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 8px;
+        padding: 10px;
+        font-size: 14px;
+      }
+
+      textarea {
+        height: 220px;
+        font-family: monospace;
+      }
+
+      button {
+        cursor: pointer;
+        font-weight: bold;
+      }
+
+      pre {
+        background: #f4f4f4;
+        padding: 12px;
+        overflow-x: auto;
+      }
+
+      .row {
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Daily Fitness Tracker</h1>
+
+    <div class="row">
+      <label>API Token</label>
+      <input id="apiToken" type="password" placeholder="Enter API token" />
+    </div>
+
+    <div class="row">
+      <label>Daily Log JSON</label>
+      <textarea id="jsonInput">{
+  "date": "2026-05-15",
+  "diet_summary": "Poha, Sandwich, Fries, Coke, Bhendi",
+  "intake_kcal": 2200,
+  "protein_g": 45,
+  "steps": 12802,
+  "burn_kcal": 2610,
+  "net_diff": -410
+}</textarea>
+    </div>
+
+    <div class="row">
+      <button onclick="submitLog()">Save Daily Log</button>
+    </div>
+
+    <div class="row">
+      <button onclick="loadLogs()">Load Logs</button>
+    </div>
+
+    <h2>Response</h2>
+    <pre id="output"></pre>
+
+    <script>
+      const tokenInput = document.getElementById("apiToken");
+      const savedToken = localStorage.getItem("fitness_api_token");
+
+      if (savedToken) {
+        tokenInput.value = savedToken;
+      }
+
+      tokenInput.addEventListener("input", () => {
+        localStorage.setItem("fitness_api_token", tokenInput.value);
+      });
+
+      async function submitLog() {
+        const output = document.getElementById("output");
+
+        try {
+          const payload = JSON.parse(document.getElementById("jsonInput").value);
+
+          const res = await fetch("/api/daily-log", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-token": tokenInput.value,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await res.json();
+          output.textContent = JSON.stringify(data, null, 2);
+        } catch (err) {
+          output.textContent = "Error: " + err.message;
+        }
+      }
+
+      async function loadLogs() {
+        const output = document.getElementById("output");
+
+        try {
+          const res = await fetch("/api/daily-log", {
+            headers: {
+              "x-api-token": tokenInput.value,
+            },
+          });
+
+          const data = await res.json();
+          output.textContent = JSON.stringify(data, null, 2);
+        } catch (err) {
+          output.textContent = "Error: " + err.message;
+        }
+      }
+    </script>
+  </body>
+</html>
