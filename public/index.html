@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Daily Fitness Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
     <style>
       :root {
         --bg: #0f1419;
@@ -19,9 +20,7 @@
         --radius: 10px;
       }
 
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
 
       body {
         font-family: "Segoe UI", system-ui, sans-serif;
@@ -33,25 +32,23 @@
       }
 
       .wrap {
-        max-width: 960px;
+        max-width: 1000px;
         margin: 0 auto;
         padding: 32px 20px 48px;
       }
 
-      header {
-        margin-bottom: 28px;
+      header { margin-bottom: 24px; }
+      h1 { margin: 0 0 6px; font-size: 1.75rem; }
+      .subtitle { color: var(--muted); margin: 0; }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
       }
 
-      h1 {
-        margin: 0 0 6px;
-        font-size: 1.75rem;
-        font-weight: 700;
-      }
-
-      .subtitle {
-        color: var(--muted);
-        margin: 0;
-        font-size: 0.95rem;
+      @media (max-width: 720px) {
+        .grid-2 { grid-template-columns: 1fr; }
       }
 
       .card {
@@ -64,7 +61,7 @@
 
       .card h2 {
         margin: 0 0 14px;
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 600;
         color: var(--muted);
         text-transform: uppercase;
@@ -78,40 +75,35 @@
         margin-bottom: 6px;
       }
 
-      input,
-      textarea,
-      button {
+      input, textarea, button {
         font: inherit;
         border-radius: 8px;
         border: 1px solid var(--border);
       }
 
-      input,
-      textarea {
+      input, textarea {
         width: 100%;
         padding: 10px 12px;
         background: var(--surface-2);
         color: var(--text);
+        margin-bottom: 12px;
       }
 
-      input:focus,
-      textarea:focus {
+      input:focus, textarea:focus {
         outline: 2px solid var(--accent-dim);
         outline-offset: 1px;
       }
 
-      textarea {
-        min-height: 200px;
-        font-family: "Cascadia Code", "Consolas", monospace;
-        font-size: 13px;
-        resize: vertical;
+      textarea { min-height: 80px; resize: vertical; }
+
+      .field-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
       }
 
-      .actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 14px;
+      @media (max-width: 520px) {
+        .field-row { grid-template-columns: 1fr; }
       }
 
       button {
@@ -119,34 +111,16 @@
         padding: 10px 18px;
         font-weight: 600;
         border: none;
-        transition: opacity 0.15s;
       }
 
-      button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      .btn-primary {
-        background: var(--accent);
-        color: #0a120e;
-      }
-
+      .btn-primary { background: var(--accent); color: #0a120e; }
       .btn-secondary {
         background: var(--surface-2);
         color: var(--text);
         border: 1px solid var(--border);
       }
 
-      .btn-ghost {
-        background: transparent;
-        color: var(--muted);
-        border: 1px solid var(--border);
-      }
-
-      button:not(:disabled):hover {
-        opacity: 0.9;
-      }
+      .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
 
       .status {
         padding: 10px 14px;
@@ -156,99 +130,100 @@
         display: none;
       }
 
-      .status.visible {
-        display: block;
+      .status.visible { display: block; }
+      .status.success { background: rgba(61, 214, 140, 0.12); border: 1px solid var(--accent-dim); color: var(--accent); }
+      .status.error { background: rgba(240, 113, 120, 0.12); border: 1px solid #c4555c; color: var(--danger); }
+      .status.info { background: rgba(139, 156, 179, 0.1); border: 1px solid var(--border); color: var(--muted); }
+
+      .progress-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
       }
 
-      .status.success {
-        background: rgba(61, 214, 140, 0.12);
-        border: 1px solid var(--accent-dim);
-        color: var(--accent);
-      }
-
-      .status.error {
-        background: rgba(240, 113, 120, 0.12);
-        border: 1px solid #c4555c;
-        color: var(--danger);
-      }
-
-      .status.info {
-        background: rgba(139, 156, 179, 0.1);
+      .score-badge {
+        background: var(--surface-2);
         border: 1px solid var(--border);
-        color: var(--muted);
-      }
-
-      .table-wrap {
-        overflow-x: auto;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-weight: 700;
         font-size: 0.9rem;
       }
 
-      th,
-      td {
-        text-align: left;
-        padding: 10px 12px;
-        border-bottom: 1px solid var(--border);
-      }
-
-      th {
-        color: var(--muted);
-        font-weight: 600;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-      }
-
-      tr:last-child td {
-        border-bottom: none;
-      }
-
-      .net-positive {
-        color: var(--warning);
-      }
-
-      .net-negative {
+      .score-badge.complete {
+        background: rgba(61, 214, 140, 0.15);
+        border-color: var(--accent-dim);
         color: var(--accent);
       }
 
-      .empty {
+      #streakStats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
         color: var(--muted);
-        text-align: center;
-        padding: 24px;
+        font-size: 0.9rem;
+        margin-bottom: 14px;
       }
 
-      pre.raw {
+      .metric { margin-bottom: 14px; }
+      .metric-head {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        margin-bottom: 6px;
+      }
+
+      .met-text { color: var(--accent); font-weight: 600; }
+
+      .bar {
+        height: 8px;
         background: var(--surface-2);
-        border: 1px solid var(--border);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        height: 100%;
+        background: var(--warning);
+        border-radius: 999px;
+        transition: width 0.3s ease;
+      }
+
+      .bar-fill.met { background: var(--accent); }
+
+      .message {
+        padding: 10px 12px;
         border-radius: 8px;
-        padding: 12px;
-        overflow-x: auto;
-        font-size: 12px;
-        margin: 0;
-        display: none;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
       }
 
-      pre.raw.visible {
-        display: block;
-      }
+      .message.success { background: rgba(61, 214, 140, 0.1); color: var(--accent); }
+      .message.info { background: rgba(139, 156, 179, 0.08); color: var(--muted); }
 
-      .hint {
-        font-size: 0.8rem;
+      #weeklyStats {
         color: var(--muted);
-        margin-top: 8px;
+        font-size: 0.85rem;
+        margin-top: 12px;
       }
+
+      table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+      th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+      th { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; }
+      .net-positive { color: var(--warning); }
+      .net-negative { color: var(--accent); }
+      .empty { color: var(--muted); text-align: center; padding: 24px; }
+      .readonly { opacity: 0.7; }
     </style>
   </head>
-
   <body>
     <div class="wrap">
       <header>
         <h1>Daily Fitness Tracker</h1>
-        <p class="subtitle">Log diet, steps, and calories — synced to Turso.</p>
+        <p class="subtitle">Log your day, hit your goals, and track weekly progress.</p>
       </header>
 
       <div id="status" class="status" role="status"></div>
@@ -257,207 +232,117 @@
         <h2>Authentication</h2>
         <label for="apiToken">API token</label>
         <input id="apiToken" type="password" placeholder="Matches API_TOKEN in .env" autocomplete="off" />
+        <div class="actions">
+          <button type="button" class="btn-secondary" id="refreshBtn">Refresh dashboard</button>
+          <button type="button" class="btn-secondary" id="todayBtn">Jump to today</button>
+        </div>
       </section>
 
       <section class="card">
-        <h2>Save daily log</h2>
-        <label for="jsonInput">JSON payload</label>
-        <textarea id="jsonInput"></textarea>
-        <p class="hint">net_diff must equal intake_kcal − burn_kcal. Use “Fill today” to set the date.</p>
-        <div class="actions">
-          <button type="button" class="btn-primary" id="saveBtn">Save daily log</button>
-          <button type="button" class="btn-ghost" id="todayBtn">Fill today</button>
-          <button type="button" class="btn-ghost" id="calcNetBtn">Recalc net_diff</button>
+        <div class="progress-header">
+          <h2 style="margin: 0">Today&apos;s progress</h2>
+          <span id="scoreBadge" class="score-badge">—</span>
         </div>
+        <label for="progressDate">View date</label>
+        <input id="progressDate" type="date" />
+        <div id="streakStats"></div>
+        <div id="progressPanel"></div>
+        <div id="progressMessages"></div>
+      </section>
+
+      <section class="card">
+        <h2>Your goals</h2>
+        <form id="goalsForm">
+          <div class="field-row">
+            <div>
+              <label for="steps_target">Steps target</label>
+              <input id="steps_target" name="steps_target" type="number" min="1" required />
+            </div>
+            <div>
+              <label for="protein_g_target">Protein target (g)</label>
+              <input id="protein_g_target" name="protein_g_target" type="number" min="1" required />
+            </div>
+          </div>
+          <div class="field-row">
+            <div>
+              <label for="intake_kcal_max">Max intake (kcal)</label>
+              <input id="intake_kcal_max" name="intake_kcal_max" type="number" min="1" required />
+            </div>
+            <div>
+              <label for="net_diff_target">Net calorie target (kcal)</label>
+              <input id="net_diff_target" name="net_diff_target" type="number" required />
+            </div>
+          </div>
+          <label for="water_ml_target">Water target (ml)</label>
+          <input id="water_ml_target" name="water_ml_target" type="number" min="1" required />
+          <div class="actions">
+            <button type="submit" class="btn-primary">Save goals</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Log your day</h2>
+        <form id="logForm">
+          <label for="date">Date</label>
+          <input id="date" name="date" type="date" required />
+
+          <label for="diet_summary">What did you eat?</label>
+          <textarea id="diet_summary" name="diet_summary" required placeholder="e.g. poha, sandwich, eggs"></textarea>
+
+          <div class="field-row">
+            <div>
+              <label for="intake_kcal">Intake (kcal)</label>
+              <input id="intake_kcal" name="intake_kcal" type="number" min="0" required />
+            </div>
+            <div>
+              <label for="burn_kcal">Burn (kcal)</label>
+              <input id="burn_kcal" name="burn_kcal" type="number" min="0" required />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div>
+              <label for="protein_g">Protein (g)</label>
+              <input id="protein_g" name="protein_g" type="number" min="0" required />
+            </div>
+            <div>
+              <label for="steps">Steps</label>
+              <input id="steps" name="steps" type="number" min="0" required />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div>
+              <label for="water_ml">Water (ml)</label>
+              <input id="water_ml" name="water_ml" type="number" min="0" value="0" />
+            </div>
+            <div>
+              <label for="net_diff">Net diff (auto)</label>
+              <input id="net_diff" name="net_diff" type="number" readonly class="readonly" />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="btn-primary">Save daily log</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Weekly overview</h2>
+        <canvas id="weeklyChart" height="120"></canvas>
+        <p id="weeklyStats">—</p>
       </section>
 
       <section class="card">
         <h2>History</h2>
-        <div class="actions">
-          <button type="button" class="btn-secondary" id="loadBtn">Load logs</button>
-          <button type="button" class="btn-ghost" id="toggleRawBtn">Show raw JSON</button>
+        <div id="tableWrap" class="table-wrap">
+          <p class="empty">Load the dashboard to see history.</p>
         </div>
-        <div id="tableWrap" class="table-wrap" style="margin-top: 16px">
-          <p class="empty">No logs loaded yet.</p>
-        </div>
-        <pre id="rawOutput" class="raw"></pre>
       </section>
     </div>
 
-    <script>
-      const tokenInput = document.getElementById("apiToken");
-      const jsonInput = document.getElementById("jsonInput");
-      const statusEl = document.getElementById("status");
-      const tableWrap = document.getElementById("tableWrap");
-      const rawOutput = document.getElementById("rawOutput");
-      const saveBtn = document.getElementById("saveBtn");
-      const loadBtn = document.getElementById("loadBtn");
-
-      const defaultPayload = {
-        date: "",
-        diet_summary: "",
-        intake_kcal: 0,
-        protein_g: 0,
-        steps: 0,
-        burn_kcal: 0,
-        net_diff: 0,
-      };
-
-      function todayISO() {
-        return new Date().toISOString().slice(0, 10);
-      }
-
-      function setStatus(message, type = "info") {
-        statusEl.textContent = message;
-        statusEl.className = `status visible ${type}`;
-      }
-
-      function clearStatus() {
-        statusEl.className = "status";
-        statusEl.textContent = "";
-      }
-
-      function setLoading(loading) {
-        saveBtn.disabled = loading;
-        loadBtn.disabled = loading;
-      }
-
-      function getHeaders() {
-        return {
-          "Content-Type": "application/json",
-          "x-api-token": tokenInput.value,
-        };
-      }
-
-      function fillToday() {
-        const payload = JSON.parse(jsonInput.value || "{}");
-        payload.date = todayISO();
-        jsonInput.value = JSON.stringify(payload, null, 2);
-      }
-
-      function recalcNetDiff() {
-        const payload = JSON.parse(jsonInput.value);
-        payload.net_diff = Number(payload.intake_kcal) - Number(payload.burn_kcal);
-        jsonInput.value = JSON.stringify(payload, null, 2);
-        setStatus(`net_diff set to ${payload.net_diff}`, "info");
-      }
-
-      function renderTable(rows) {
-        if (!rows.length) {
-          tableWrap.innerHTML = '<p class="empty">No logs found.</p>';
-          return;
-        }
-
-        const headers = [
-          "date",
-          "diet_summary",
-          "intake_kcal",
-          "protein_g",
-          "steps",
-          "burn_kcal",
-          "net_diff",
-        ];
-
-        const thead = headers.map((h) => `<th>${h.replace("_", " ")}</th>`).join("");
-        const tbody = rows
-          .map((row) => {
-            const net = Number(row.net_diff);
-            const netClass = net >= 0 ? "net-positive" : "net-negative";
-            return `<tr>
-              <td>${row.date}</td>
-              <td>${row.diet_summary}</td>
-              <td>${row.intake_kcal}</td>
-              <td>${row.protein_g}g</td>
-              <td>${row.steps?.toLocaleString?.() ?? row.steps}</td>
-              <td>${row.burn_kcal}</td>
-              <td class="${netClass}">${net > 0 ? "+" : ""}${net}</td>
-            </tr>`;
-          })
-          .join("");
-
-        tableWrap.innerHTML = `<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
-      }
-
-      async function submitLog() {
-        clearStatus();
-        setLoading(true);
-
-        try {
-          const payload = JSON.parse(jsonInput.value);
-
-          const res = await fetch("/api/daily-log", {
-            method: "POST",
-            headers: getHeaders(),
-            body: JSON.stringify(payload),
-          });
-
-          const data = await res.json();
-
-          if (!res.ok) {
-            setStatus(data.message || "Request failed", "error");
-            return;
-          }
-
-          setStatus(data.message || "Log saved", "success");
-          await loadLogs({ quiet: true });
-        } catch (err) {
-          setStatus(err.message, "error");
-        } finally {
-          setLoading(false);
-        }
-      }
-
-      async function loadLogs({ quiet = false } = {}) {
-        if (!quiet) clearStatus();
-        setLoading(true);
-
-        try {
-          const res = await fetch("/api/daily-log", {
-            headers: { "x-api-token": tokenInput.value },
-          });
-
-          const data = await res.json();
-
-          if (!res.ok) {
-            setStatus(data.message || "Failed to load logs", "error");
-            return;
-          }
-
-          rawOutput.textContent = JSON.stringify(data, null, 2);
-          renderTable(data);
-
-          if (!quiet) {
-            setStatus(`Loaded ${data.length} log${data.length === 1 ? "" : "s"}`, "success");
-          }
-        } catch (err) {
-          setStatus(err.message, "error");
-        } finally {
-          setLoading(false);
-        }
-      }
-
-      const savedToken = localStorage.getItem("fitness_api_token");
-      if (savedToken) tokenInput.value = savedToken;
-
-      tokenInput.addEventListener("input", () => {
-        localStorage.setItem("fitness_api_token", tokenInput.value);
-      });
-
-      jsonInput.value = JSON.stringify({ ...defaultPayload, date: todayISO() }, null, 2);
-
-      document.getElementById("saveBtn").addEventListener("click", submitLog);
-      document.getElementById("loadBtn").addEventListener("click", () => loadLogs());
-      document.getElementById("todayBtn").addEventListener("click", fillToday);
-      document.getElementById("calcNetBtn").addEventListener("click", () => {
-        try {
-          recalcNetDiff();
-        } catch {
-          setStatus("Invalid JSON in editor", "error");
-        }
-      });
-      document.getElementById("toggleRawBtn").addEventListener("click", () => {
-        rawOutput.classList.toggle("visible");
-      });
-    </script>
+    <script src="/app.js"></script>
   </body>
 </html>
