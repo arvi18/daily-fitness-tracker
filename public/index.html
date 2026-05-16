@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Daily Fitness Tracker</title>
+    <meta
+      name="description"
+      content="Log daily calories, protein, and steps. Track weekly and monthly progress against your goals."
+    />
+    <meta name="theme-color" content="#0f1419" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Daily Fitness Tracker" />
+    <meta
+      property="og:description"
+      content="Log daily calories, protein, and steps. Track weekly and monthly progress against your goals."
+    />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
     <style>
       :root {
@@ -278,8 +291,7 @@
     <div class="wrap">
       <header>
         <h1>Daily Fitness Tracker</h1>
-        <p class="subtitle">Paste from Gemini, log at night, review week and month progress.</p>
-      </header>
+        </header>
 
       <div id="status" class="status" role="status"></div>
 
@@ -316,7 +328,7 @@
       <section class="card">
         <h2>Log your day</h2>
         <p class="hint">
-          Paste JSON from Gemini. <code>net_diff</code> must equal <code>intake_kcal − burn_kcal</code>.
+          <code>net_diff</code> must equal <code>intake_kcal − burn_kcal</code>.
         </p>
         <label for="jsonInput">Daily log JSON</label>
         <textarea id="jsonInput" class="json-input" spellcheck="false"></textarea>
