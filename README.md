@@ -252,13 +252,58 @@ x-api-token: <your API_TOKEN>
 └── fly.toml
 ```
 
-## Deployment
+## Deployment (Render — recommended)
 
-### Render
+Your repo is already on GitHub with a [`render.yaml`](render.yaml) blueprint. Render runs **Linux + Node**; that matches this app (remote Turso over HTTP, no Windows-only code).
 
-1. Connect the GitHub repo in [Render](https://render.com/).
-2. Use the included `render.yaml` or set build `npm ci` and start `npm start`.
-3. Add env vars: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `API_TOKEN`.
+### Step 1 — Open Render Blueprint
+
+1. Sign in at [render.com](https://render.com/) (GitHub login is easiest).
+2. Go to **[New Blueprint Instance](https://dashboard.render.com/select-repo?type=blueprint)**.
+3. Connect GitHub if asked, then select **`arvi18/daily-fitness-tracker`**.
+4. Render reads `render.yaml` and shows one web service: `daily-fitness-tracker`.
+
+### Step 2 — Add environment variables
+
+When prompted, paste the **same values** as your local `.env` (do not commit `.env`):
+
+| Key | Where to get it |
+|-----|-----------------|
+| `TURSO_DATABASE_URL` | Turso dashboard → your database → connect URL (`libsql://...`) |
+| `TURSO_AUTH_TOKEN` | Turso → database → **Tokens** → create/read token |
+| `API_TOKEN` | Any secret string you choose (same one you use in the browser) |
+
+`NODE_ENV=production` is set in `render.yaml` already. Render sets `PORT` automatically.
+
+### Step 3 — Deploy
+
+1. Click **Apply** / **Create**.
+2. Wait for build (`npm ci`) and deploy (`npm start`) — usually a few minutes on the free plan.
+3. Open the URL Render gives you, e.g. `https://daily-fitness-tracker.onrender.com`.
+
+### Step 4 — Verify
+
+1. Visit `https://YOUR-APP.onrender.com/api/health` — should show `{"status":"ok","database":"ok"}`.
+2. Open the app URL, paste your **`API_TOKEN`**, click **Refresh dashboard**.
+3. Paste a test JSON and **Save daily log**.
+
+### After deploy
+
+- **Auto-deploy:** Pushes to `main` on GitHub trigger a new deploy (default).
+- **Cold start:** Free tier may sleep after ~15 min idle; first load can take 30–60 seconds.
+- **Custom domain:** Optional, in Render service → Settings → Custom Domains.
+
+### Manual setup (without Blueprint)
+
+If you prefer not to use the blueprint:
+
+| Setting | Value |
+|---------|--------|
+| Build command | `npm ci` |
+| Start command | `npm start` |
+| Health check path | `/api/health` |
+
+Add the three env vars above in **Environment**.
 
 ### Fly.io
 
