@@ -4,6 +4,14 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { db, initDb } from "./db.js";
 
+const requiredEnv = ["TURSO_DATABASE_URL", "TURSO_AUTH_TOKEN", "API_TOKEN"];
+for (const key of requiredEnv) {
+  if (!process.env[key]) {
+    console.error(`Missing required environment variable: ${key}`);
+    process.exit(1);
+  }
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -63,6 +71,14 @@ function validateDailyLog(body) {
     if (!Number.isInteger(Number(body[field]))) {
       return `${field} must be an integer`;
     }
+  }
+
+  const intake = Number(body.intake_kcal);
+  const burn = Number(body.burn_kcal);
+  const expectedNet = intake - burn;
+
+  if (Number(body.net_diff) !== expectedNet) {
+    return `net_diff must equal intake_kcal - burn_kcal (${expectedNet})`;
   }
 
   return null;
