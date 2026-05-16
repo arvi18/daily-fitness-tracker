@@ -54,8 +54,39 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function parseISODate(isoDate) {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+/** e.g. 2026-05-16 → 16 May 2026 */
+function formatDisplayDate(isoDate) {
+  if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return isoDate;
+  return parseISODate(isoDate).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** Shorter label for charts: 16 May */
+function formatDisplayDateShort(isoDate) {
+  if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return isoDate;
+  return parseISODate(isoDate).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
 function formatRange(start, end) {
-  return `${start} → ${end}`;
+  if (start === end) return formatDisplayDate(start);
+  return `${formatDisplayDate(start)} → ${formatDisplayDate(end)}`;
+}
+
+function formatDatesInText(text) {
+  return text.replace(/\b(\d{4}-\d{2}-\d{2})\b/g, (_, iso) => formatDisplayDate(iso));
 }
 
 function formatChange(changePct) {
@@ -269,7 +300,7 @@ function renderPeriodProgress(data, { panelId, messagesId, badgeId, rangeId, com
     .join("");
 
   document.getElementById(messagesId).innerHTML = messages
-    .map((m) => `<div class="message ${m.type}">${m.text}</div>`)
+    .map((m) => `<div class="message ${m.type}">${formatDatesInText(m.text)}</div>`)
     .join("");
 }
 
@@ -281,7 +312,7 @@ function renderStreaks(streaks) {
 }
 
 function renderWeeklyChart(summary) {
-  const labels = summary.days.map((d) => d.date.slice(5));
+  const labels = summary.days.map((d) => formatDisplayDateShort(d.date));
   const steps = summary.days.map((d) => d.steps ?? 0);
   const intake = summary.days.map((d) => d.intake_kcal ?? 0);
 
@@ -350,7 +381,7 @@ function renderTable() {
       const net = Number(row.net_diff);
       const netClass = net >= 0 ? "net-positive" : "net-negative";
       return `<tr>
-        <td>${row.date}</td>
+        <td>${formatDisplayDate(row.date)}</td>
         <td>${row.diet_summary}</td>
         <td>${row.intake_kcal}</td>
         <td>${row.protein_g}g</td>
@@ -362,7 +393,7 @@ function renderTable() {
 
   tableWrap.innerHTML = `<table>
     <thead><tr>
-      <th>date</th><th>diet</th><th>intake</th><th>protein</th><th>steps</th><th>net</th>
+      <th>Date</th><th>diet</th><th>intake</th><th>protein</th><th>steps</th><th>net</th>
     </tr></thead>
     <tbody>${tbody}</tbody>
   </table>`;
@@ -385,10 +416,10 @@ async function loadTodayIntoJson() {
   try {
     const log = await api(`/api/daily-log/${date}`);
     fillJsonTemplate(log);
-    setStatus(`Loaded log for ${date}`, "success");
+    setStatus(`Loaded log for ${formatDisplayDate(date)}`, "success");
   } catch {
     fillJsonTemplate({ ...defaultLogPayload, date });
-    setStatus(`No log for ${date} — blank template ready`, "info");
+    setStatus(`No log for ${formatDisplayDate(date)} — blank template ready`, "info");
   }
 }
 
