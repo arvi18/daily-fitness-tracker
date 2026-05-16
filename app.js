@@ -2,9 +2,10 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import {
+  buildMonthlyProgress,
+  buildWeeklyProgress,
   buildWeeklySummary,
   computeStreaks,
-  evaluateProgress,
   rowToGoals,
   rowToLog,
 } from "./lib/progress.js";
@@ -122,40 +123,42 @@ export function createApp(db) {
     }
   });
 
-  app.get("/api/progress", requireApiToken, async (req, res) => {
-    const date = req.query.date || new Date().toISOString().slice(0, 10);
+  async function loadProgress(period, endDate, res) {
+    const goalsRow = await fetchGoals(db);
+    const goals = rowToGoals(goalsRow);
+    const result = await db.execute(`${logSelect} ORDER BY date DESC`);
+    const streaks = computeStreaks(result.rows, goals, endDate);
+    const progress =
+      period === "month"
+        ? buildMonthlyProgress(result.rows, goals, endDate)
+        : buildWeeklyProgress(result.rows, goals, endDate);
 
-    if (!isValidDate(date)) {
-      return res.status(400).json({
-        status: "error",
-        message: "date must be in YYYY-MM-DD format",
-      });
+    res.json({ goals, streaks, ...progress });
+  }
+
+  app.get("/api/progress/weekly", requireApiToken, async (req, res) => {
+    const endDate = req.query.end || new Date().toISOString().slice(0, 10);
+    if (!isValidDate(endDate)) {
+      return res.status(400).json({ status: "error", message: "end must be in YYYY-MM-DD format" });
     }
-
     try {
-      const goalsRow = await fetchGoals(db);
-      const goals = rowToGoals(goalsRow);
-
-      const logResult = await db.execute({
-        sql: `${logSelect} WHERE date = ?`,
-        args: [date],
-      });
-      const log = rowToLog(logResult.rows[0]);
-
-      const allLogs = await db.execute(`${logSelect} ORDER BY date DESC`);
-      const streaks = computeStreaks(allLogs.rows, goals, date);
-      const progress = evaluateProgress(log, goals);
-
-      res.json({
-        date,
-        log,
-        goals,
-        ...progress,
-        streaks,
-      });
+      await loadProgress("week", endDate, res);
     } catch (err) {
-      console.error("GET /api/progress error:", err);
-      res.status(500).json({ status: "error", message: "Failed to fetch progress" });
+      console.error("GET /api/progress/weekly error:", err);
+      res.status(500).json({ status: "error", message: "Failed to fetch weekly progress" });
+    }
+  });
+
+  app.get("/api/progress/monthly", requireApiToken, async (req, res) => {
+    const endDate = req.query.end || new Date().toISOString().slice(0, 10);
+    if (!isValidDate(endDate)) {
+      return res.status(400).json({ status: "error", message: "end must be in YYYY-MM-DD format" });
+    }
+    try {
+      await loadProgress("month", endDate, res);
+    } catch (err) {
+      console.error("GET /api/progress/monthly error:", err);
+      res.status(500).json({ status: "error", message: "Failed to fetch monthly progress" });
     }
   });
 

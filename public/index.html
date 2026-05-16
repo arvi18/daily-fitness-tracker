@@ -41,6 +41,67 @@
       h1 { margin: 0 0 6px; font-size: 1.75rem; }
       .subtitle { color: var(--muted); margin: 0; }
 
+      .range-label {
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin: 0 0 14px;
+      }
+
+      .comparison-banner {
+        display: none;
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px 12px;
+        margin-bottom: 14px;
+        border-radius: 8px;
+        background: rgba(139, 156, 179, 0.08);
+        border: 1px solid var(--border);
+        font-size: 0.85rem;
+      }
+
+      .comparison-banner.visible {
+        display: flex;
+      }
+
+      .comparison-title {
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .comparison-totals {
+        color: var(--text);
+      }
+
+      .change {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .change.up {
+        background: rgba(61, 214, 140, 0.15);
+        color: var(--accent);
+      }
+
+      .change.down {
+        background: rgba(240, 113, 120, 0.12);
+        color: var(--danger);
+      }
+
+      .change.flat {
+        background: rgba(139, 156, 179, 0.12);
+        color: var(--muted);
+      }
+
+      .metric-head span:last-child {
+        text-align: right;
+        max-width: 62%;
+      }
+
       .grid-2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -223,7 +284,7 @@
     <div class="wrap">
       <header>
         <h1>Daily Fitness Tracker</h1>
-        <p class="subtitle">Log your day, hit your goals, and track weekly progress.</p>
+        <p class="subtitle">Log at night, review your week and month, and track goals over time.</p>
       </header>
 
       <div id="status" class="status" role="status"></div>
@@ -240,14 +301,29 @@
 
       <section class="card">
         <div class="progress-header">
-          <h2 style="margin: 0">Today&apos;s progress</h2>
-          <span id="scoreBadge" class="score-badge">—</span>
+          <h2 style="margin: 0">Latest week</h2>
+          <span id="weekScoreBadge" class="score-badge">—</span>
         </div>
-        <label for="progressDate">View date</label>
-        <input id="progressDate" type="date" />
+        <p id="weekRangeLabel" class="range-label">—</p>
+        <div id="weekComparison" class="comparison-banner"></div>
+        <div id="weekProgressPanel"></div>
+        <div id="weekProgressMessages"></div>
+      </section>
+
+      <section class="card">
+        <div class="progress-header">
+          <h2 style="margin: 0">Latest month</h2>
+          <span id="monthScoreBadge" class="score-badge">—</span>
+        </div>
+        <p id="monthRangeLabel" class="range-label">—</p>
+        <div id="monthComparison" class="comparison-banner"></div>
+        <div id="monthProgressPanel"></div>
+        <div id="monthProgressMessages"></div>
+      </section>
+
+      <section class="card">
+        <h2>Streaks</h2>
         <div id="streakStats"></div>
-        <div id="progressPanel"></div>
-        <div id="progressMessages"></div>
       </section>
 
       <section class="card">

@@ -136,14 +136,16 @@ describe("API", () => {
     assert.equal(res.body.status, "success");
   });
 
-  it("GET /api/progress returns score", async () => {
+  it("GET /api/progress/weekly returns period score", async () => {
     const res = await request(app)
-      .get("/api/progress?date=2026-05-15")
+      .get("/api/progress/weekly?end=2026-05-15")
       .set(auth);
 
     assert.equal(res.status, 200);
+    assert.equal(res.body.period, "week");
     assert.ok(res.body.score);
     assert.ok(Array.isArray(res.body.metrics));
+    assert.equal(res.body.comparison, undefined);
   });
 
   it("rejects missing API token", async () => {

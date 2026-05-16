@@ -1,18 +1,31 @@
 const tokenInput = document.getElementById("apiToken");
 const statusEl = document.getElementById("status");
-const progressEl = document.getElementById("progressPanel");
 const goalsForm = document.getElementById("goalsForm");
 const logForm = document.getElementById("logForm");
 const tableWrap = document.getElementById("tableWrap");
 const weeklyCanvas = document.getElementById("weeklyChart");
-const scoreEl = document.getElementById("scoreBadge");
 const streakEl = document.getElementById("streakStats");
-const progressDateInput = document.getElementById("progressDate");
 
 let chartInstance = null;
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function formatRange(start, end) {
+  return `${start} → ${end}`;
+}
+
+function formatChange(changePct) {
+  if (changePct === null || changePct === undefined) return "";
+  const sign = changePct > 0 ? "+" : "";
+  return `${sign}${changePct}%`;
+}
+
+function comparisonChip(changePct, label) {
+  if (changePct === null || changePct === undefined) return "";
+  const direction = changePct > 0 ? "up" : changePct < 0 ? "down" : "flat";
+  return `<span class="change ${direction}" title="vs ${label}">${formatChange(changePct)} vs ${label}</span>`;
 }
 
 function setStatus(message, type = "info") {
@@ -52,33 +65,67 @@ function calcNetDiff() {
   logForm.net_diff.value = intake - burn;
 }
 
-function renderProgress(data) {
-  const { score, metrics, messages, streaks, log } = data;
+function renderPeriodProgress(data, { panelId, messagesId, badgeId, rangeId, comparisonId }) {
+  const { score, metrics, messages, totals, start, end, comparison } = data;
+  const comparisonByKey = new Map((comparison?.metrics ?? []).map((m) => [m.key, m]));
 
-  scoreEl.textContent = log ? `${score.met}/${score.total} goals` : "No log yet";
-  scoreEl.className = `score-badge ${score.met === score.total && log ? "complete" : ""}`;
+  document.getElementById(badgeId).textContent =
+    totals.days_logged === 0
+      ? "No logs yet"
+      : `${score.met}/${score.total} goals on track`;
+  document.getElementById(badgeId).className = `score-badge ${
+    score.met === score.total && totals.days_logged > 0 ? "complete" : ""
+  }`;
+  document.getElementById(rangeId).textContent = formatRange(start, end);
 
+  const comparisonEl = document.getElementById(comparisonId);
+  if (comparison) {
+    const { previous_label, previous_range, totals: cmpTotals } = comparison;
+    const parts = [];
+    if (cmpTotals.days_logged.change_pct !== null) {
+      parts.push(`Days logged ${comparisonChip(cmpTotals.days_logged.change_pct, previous_label)}`);
+    }
+    if (cmpTotals.goals_hit_days.change_pct !== null) {
+      parts.push(`Full-goal days ${comparisonChip(cmpTotals.goals_hit_days.change_pct, previous_label)}`);
+    }
+    comparisonEl.className = "comparison-banner visible";
+    comparisonEl.innerHTML = `
+      <span class="comparison-title">vs ${previous_label} (${formatRange(previous_range.start, previous_range.end)})</span>
+      ${parts.length ? `<span class="comparison-totals">${parts.join(" · ")}</span>` : ""}
+    `;
+  } else {
+    comparisonEl.className = "comparison-banner";
+    comparisonEl.innerHTML = "";
+  }
+
+  document.getElementById(panelId).innerHTML = metrics
+    .map((m) => {
+      const cmp = comparisonByKey.get(m.key);
+      const changeHtml = cmp ? comparisonChip(cmp.change_pct, comparison.previous_label) : "";
+      return `
+    <div class="metric">
+      <div class="metric-head">
+        <span>${m.label}</span>
+        <span class="${m.met ? "met-text" : ""}">
+          ${m.days_met}/${m.days_logged} days · avg ${m.current}${m.unit ? ` ${m.unit}` : ""}
+          ${changeHtml}
+        </span>
+      </div>
+      <div class="bar"><div class="bar-fill ${m.met ? "met" : ""}" style="width:${m.percent}%"></div></div>
+    </div>`;
+    })
+    .join("");
+
+  document.getElementById(messagesId).innerHTML = messages
+    .map((m) => `<div class="message ${m.type}">${m.text}</div>`)
+    .join("");
+}
+
+function renderStreaks(streaks) {
   streakEl.innerHTML = `
     <span>Logging streak: <strong>${streaks.logging}</strong> day(s)</span>
     <span>Full-goal streak: <strong>${streaks.all_goals}</strong> day(s)</span>
   `;
-
-  progressEl.innerHTML = metrics
-    .map(
-      (m) => `
-    <div class="metric">
-      <div class="metric-head">
-        <span>${m.label}</span>
-        <span class="${m.met ? "met-text" : ""}">${m.current}${m.unit ? ` ${m.unit}` : ""} / ${m.target}${m.unit ? ` ${m.unit}` : ""}</span>
-      </div>
-      <div class="bar"><div class="bar-fill ${m.met ? "met" : ""}" style="width:${m.percent}%"></div></div>
-    </div>`
-    )
-    .join("");
-
-  document.getElementById("progressMessages").innerHTML = messages
-    .map((m) => `<div class="message ${m.type}">${m.text}</div>`)
-    .join("");
 }
 
 function renderWeeklyChart(summary) {
@@ -181,11 +228,8 @@ function fillGoalsForm(goals) {
   goalsForm.water_ml_target.value = goals.water_ml_target;
 }
 
-async function loadProgress() {
-  const date = progressDateInput.value || todayISO();
-  const data = await api(`/api/progress?date=${date}`);
-  renderProgress(data);
-
+async function loadLogForForm() {
+  const date = logForm.date.value || todayISO();
   try {
     const log = await api(`/api/daily-log/${date}`);
     fillLogForm(log);
@@ -194,9 +238,32 @@ async function loadProgress() {
   }
 }
 
-async function loadWeekly() {
-  const end = progressDateInput.value || todayISO();
-  const summary = await api(`/api/summary/weekly?end=${end}`);
+async function loadPeriodProgress() {
+  const end = todayISO();
+  const [weekly, monthly] = await Promise.all([
+    api(`/api/progress/weekly?end=${end}`),
+    api(`/api/progress/monthly?end=${end}`),
+  ]);
+
+  renderStreaks(weekly.streaks);
+  renderPeriodProgress(weekly, {
+    panelId: "weekProgressPanel",
+    messagesId: "weekProgressMessages",
+    badgeId: "weekScoreBadge",
+    rangeId: "weekRangeLabel",
+    comparisonId: "weekComparison",
+  });
+  renderPeriodProgress(monthly, {
+    panelId: "monthProgressPanel",
+    messagesId: "monthProgressMessages",
+    badgeId: "monthScoreBadge",
+    rangeId: "monthRangeLabel",
+    comparisonId: "monthComparison",
+  });
+}
+
+async function loadWeeklyChart() {
+  const summary = await api(`/api/summary/weekly?end=${todayISO()}`);
   renderWeeklyChart(summary);
 }
 
@@ -214,9 +281,10 @@ async function refreshDashboard({ quiet = false } = {}) {
   try {
     const goals = await api("/api/goals");
     fillGoalsForm(goals);
-    await loadProgress();
-    await loadWeekly();
+    await loadPeriodProgress();
+    await loadWeeklyChart();
     await loadLogs();
+    await loadLogForForm();
     if (!quiet) setStatus("Dashboard updated", "success");
   } catch (err) {
     setStatus(err.message, "error");
@@ -282,20 +350,20 @@ tokenInput.addEventListener("input", () => {
   localStorage.setItem("fitness_api_token", tokenInput.value);
 });
 
-progressDateInput.value = todayISO();
 logForm.date.value = todayISO();
 
 ["intake_kcal", "burn_kcal"].forEach((name) => {
   logForm[name].addEventListener("input", calcNetDiff);
 });
 
+logForm.date.addEventListener("change", () => loadLogForForm());
+
 document.getElementById("refreshBtn").addEventListener("click", () => refreshDashboard());
 document.getElementById("todayBtn").addEventListener("click", () => {
-  progressDateInput.value = todayISO();
   logForm.date.value = todayISO();
+  loadLogForForm();
   refreshDashboard();
 });
-progressDateInput.addEventListener("change", () => refreshDashboard({ quiet: true }));
 logForm.addEventListener("submit", saveLog);
 goalsForm.addEventListener("submit", saveGoals);
 

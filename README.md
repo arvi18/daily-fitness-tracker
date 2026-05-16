@@ -5,7 +5,7 @@ A small Node.js app to log daily diet, steps, water, and calorie balance. Data l
 ## Features
 
 - **Daily log form** — diet, calories, protein, steps, water
-- **Goals & gamification** — progress bars, motivational messages, logging / full-goal streaks
+- **Goals & gamification** — latest week and month progress, streaks, motivational messages
 - **Weekly charts** — steps and intake over the last 7 days
 - **REST API** — token-protected, upsert by date
 - **Tests** — validation, progress logic, and API smoke tests
@@ -53,7 +53,8 @@ x-api-token: <your API_TOKEN>
 | GET | `/api/health` | Health + database ping |
 | GET | `/api/goals` | Current goals |
 | PUT | `/api/goals` | Update goals |
-| GET | `/api/progress?date=YYYY-MM-DD` | Day progress, metrics, messages, streaks |
+| GET | `/api/progress/weekly?end=YYYY-MM-DD` | Last 7 days — goal hit rate, averages, messages |
+| GET | `/api/progress/monthly?end=YYYY-MM-DD` | Calendar month to date — same stats |
 | GET | `/api/summary/weekly?end=YYYY-MM-DD` | 7-day summary for charts |
 | POST | `/api/daily-log` | Create or update a log |
 | GET | `/api/daily-log` | All logs (newest first) |
