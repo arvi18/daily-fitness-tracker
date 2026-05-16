@@ -1,10 +1,10 @@
 # Daily Fitness Tracker
 
-A small Node.js app to log daily diet, steps, water, and calorie balance. Data lives in [Turso](https://turso.tech/) (libSQL). The web UI includes forms, goal tracking, streaks, and weekly charts.
+A small Node.js app to log daily diet, steps, and calorie balance. Data lives in [Turso](https://turso.tech/) (libSQL). The web UI includes forms, goal tracking, streaks, and weekly charts.
 
 ## Features
 
-- **Daily log form** — diet, calories, protein, steps, water
+- **Daily log form** — diet, calories, protein, steps (JSON paste)
 - **Goals & gamification** — latest week and month progress, streaks, motivational messages
 - **Weekly charts** — steps and intake over the last 7 days
 - **REST API** — token-protected, upsert by date
@@ -67,8 +67,7 @@ x-api-token: <your API_TOKEN>
   "steps_target": 10000,
   "protein_g_target": 100,
   "intake_kcal_max": 2200,
-  "net_diff_target": -300,
-  "water_ml_target": 2500
+  "net_diff_target": -300
 }
 ```
 
@@ -82,8 +81,7 @@ x-api-token: <your API_TOKEN>
   "protein_g": 45,
   "steps": 12802,
   "burn_kcal": 2610,
-  "net_diff": -410,
-  "water_ml": 2500
+  "net_diff": -410
 }
 ```
 

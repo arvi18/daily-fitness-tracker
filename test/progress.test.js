@@ -16,7 +16,6 @@ const goals = rowToGoals({
   protein_g_target: 100,
   intake_kcal_max: 2200,
   net_diff_target: -300,
-  water_ml_target: 2500,
 });
 
 const sampleLog = {
@@ -27,7 +26,6 @@ const sampleLog = {
   steps: 12000,
   burn_kcal: 2600,
   net_diff: -600,
-  water_ml: 2600,
 };
 
 describe("evaluateProgress", () => {

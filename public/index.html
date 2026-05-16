@@ -41,77 +41,6 @@
       h1 { margin: 0 0 6px; font-size: 1.75rem; }
       .subtitle { color: var(--muted); margin: 0; }
 
-      .range-label {
-        color: var(--muted);
-        font-size: 0.85rem;
-        margin: 0 0 14px;
-      }
-
-      .comparison-banner {
-        display: none;
-        flex-direction: column;
-        gap: 6px;
-        padding: 10px 12px;
-        margin-bottom: 14px;
-        border-radius: 8px;
-        background: rgba(139, 156, 179, 0.08);
-        border: 1px solid var(--border);
-        font-size: 0.85rem;
-      }
-
-      .comparison-banner.visible {
-        display: flex;
-      }
-
-      .comparison-title {
-        color: var(--muted);
-        font-weight: 600;
-      }
-
-      .comparison-totals {
-        color: var(--text);
-      }
-
-      .change {
-        display: inline-block;
-        margin-left: 6px;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        white-space: nowrap;
-      }
-
-      .change.up {
-        background: rgba(61, 214, 140, 0.15);
-        color: var(--accent);
-      }
-
-      .change.down {
-        background: rgba(240, 113, 120, 0.12);
-        color: var(--danger);
-      }
-
-      .change.flat {
-        background: rgba(139, 156, 179, 0.12);
-        color: var(--muted);
-      }
-
-      .metric-head span:last-child {
-        text-align: right;
-        max-width: 62%;
-      }
-
-      .grid-2 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
-      }
-
-      @media (max-width: 720px) {
-        .grid-2 { grid-template-columns: 1fr; }
-      }
-
       .card {
         background: var(--surface);
         border: 1px solid var(--border);
@@ -136,13 +65,13 @@
         margin-bottom: 6px;
       }
 
-      input, textarea, button {
+      input, textarea, button, select {
         font: inherit;
         border-radius: 8px;
         border: 1px solid var(--border);
       }
 
-      input, textarea {
+      input, textarea, select {
         width: 100%;
         padding: 10px 12px;
         background: var(--surface-2);
@@ -150,12 +79,17 @@
         margin-bottom: 12px;
       }
 
-      input:focus, textarea:focus {
+      input:focus, textarea:focus, select:focus {
         outline: 2px solid var(--accent-dim);
         outline-offset: 1px;
       }
 
-      textarea { min-height: 80px; resize: vertical; }
+      textarea.json-input {
+        min-height: 220px;
+        font-family: "Cascadia Code", "Consolas", monospace;
+        font-size: 13px;
+        resize: vertical;
+      }
 
       .field-row {
         display: grid;
@@ -181,7 +115,19 @@
         border: 1px solid var(--border);
       }
 
+      .btn-ghost {
+        background: transparent;
+        color: var(--muted);
+        border: 1px solid var(--border);
+      }
+
       .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+
+      .hint {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin: 0 0 12px;
+      }
 
       .status {
         padding: 10px 14px;
@@ -195,6 +141,41 @@
       .status.success { background: rgba(61, 214, 140, 0.12); border: 1px solid var(--accent-dim); color: var(--accent); }
       .status.error { background: rgba(240, 113, 120, 0.12); border: 1px solid #c4555c; color: var(--danger); }
       .status.info { background: rgba(139, 156, 179, 0.1); border: 1px solid var(--border); color: var(--muted); }
+
+      .range-label {
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin: 0 0 14px;
+      }
+
+      .comparison-banner {
+        display: none;
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px 12px;
+        margin-bottom: 14px;
+        border-radius: 8px;
+        background: rgba(139, 156, 179, 0.08);
+        border: 1px solid var(--border);
+        font-size: 0.85rem;
+      }
+
+      .comparison-banner.visible { display: flex; }
+      .comparison-title { color: var(--muted); font-weight: 600; }
+
+      .change {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .change.up { background: rgba(61, 214, 140, 0.15); color: var(--accent); }
+      .change.down { background: rgba(240, 113, 120, 0.12); color: var(--danger); }
+      .change.flat { background: rgba(139, 156, 179, 0.12); color: var(--muted); }
 
       .progress-header {
         display: flex;
@@ -235,8 +216,10 @@
         justify-content: space-between;
         font-size: 0.9rem;
         margin-bottom: 6px;
+        gap: 12px;
       }
 
+      .metric-head span:last-child { text-align: right; max-width: 62%; }
       .met-text { color: var(--accent); font-weight: 600; }
 
       .bar {
@@ -277,39 +260,95 @@
       .net-positive { color: var(--warning); }
       .net-negative { color: var(--accent); }
       .empty { color: var(--muted); text-align: center; padding: 24px; }
-      .readonly { opacity: 0.7; }
+
+      .pagination {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .pagination-info { color: var(--muted); font-size: 0.85rem; }
+      .pagination-controls { display: flex; gap: 8px; }
     </style>
   </head>
   <body>
     <div class="wrap">
       <header>
         <h1>Daily Fitness Tracker</h1>
-        <p class="subtitle">Log at night, review your week and month, and track goals over time.</p>
+        <p class="subtitle">Paste from Gemini, log at night, review week and month progress.</p>
       </header>
 
       <div id="status" class="status" role="status"></div>
 
+      <!-- 1. Authentication -->
       <section class="card">
         <h2>Authentication</h2>
-        <label for="apiToken">API token</label>
-        <input id="apiToken" type="password" placeholder="Matches API_TOKEN in .env" autocomplete="off" />
+        <form id="authForm" autocomplete="on" onsubmit="return false">
+          <input
+            type="text"
+            name="username"
+            autocomplete="username"
+            value="daily-fitness-tracker"
+            tabindex="-1"
+            aria-hidden="true"
+            class="sr-only"
+          />
+          <label for="apiToken">API token</label>
+          <input
+            id="apiToken"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Matches API_TOKEN in .env"
+          />
+          <p class="hint">Saved in this browser for 30 days. Works with password managers like Bitwarden.</p>
+          <div class="actions">
+            <button type="button" class="btn-secondary" id="refreshBtn">Refresh dashboard</button>
+            <button type="button" class="btn-ghost" id="clearTokenBtn">Clear saved token</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- 2. Log your day -->
+      <section class="card">
+        <h2>Log your day</h2>
+        <p class="hint">
+          Paste JSON from Gemini. <code>net_diff</code> must equal <code>intake_kcal − burn_kcal</code>.
+        </p>
+        <label for="jsonInput">Daily log JSON</label>
+        <textarea id="jsonInput" class="json-input" spellcheck="false"></textarea>
         <div class="actions">
-          <button type="button" class="btn-secondary" id="refreshBtn">Refresh dashboard</button>
-          <button type="button" class="btn-secondary" id="todayBtn">Jump to today</button>
+          <button type="button" class="btn-primary" id="saveLogBtn">Save daily log</button>
+          <button type="button" class="btn-ghost" id="todayBtn">Fill today</button>
+          <button type="button" class="btn-ghost" id="recalcNetBtn">Recalc net_diff</button>
+          <button type="button" class="btn-ghost" id="loadTodayBtn">Load today&apos;s log</button>
         </div>
       </section>
 
+      <!-- 3. Weekly overview -->
+      <section class="card">
+        <h2>Weekly overview</h2>
+        <canvas id="weeklyChart" height="120"></canvas>
+        <p id="weeklyStats">—</p>
+      </section>
+
+      <!-- 4. Latest week -->
       <section class="card">
         <div class="progress-header">
           <h2 style="margin: 0">Latest week</h2>
           <span id="weekScoreBadge" class="score-badge">—</span>
         </div>
         <p id="weekRangeLabel" class="range-label">—</p>
+        <div id="streakStats"></div>
         <div id="weekComparison" class="comparison-banner"></div>
         <div id="weekProgressPanel"></div>
         <div id="weekProgressMessages"></div>
       </section>
 
+      <!-- 5. Latest month -->
       <section class="card">
         <div class="progress-header">
           <h2 style="margin: 0">Latest month</h2>
@@ -321,11 +360,22 @@
         <div id="monthProgressMessages"></div>
       </section>
 
+      <!-- 6. History -->
       <section class="card">
-        <h2>Streaks</h2>
-        <div id="streakStats"></div>
+        <h2>History</h2>
+        <div id="tableWrap" class="table-wrap">
+          <p class="empty">Load the dashboard to see history.</p>
+        </div>
+        <div id="pagination" class="pagination" hidden>
+          <span id="paginationInfo" class="pagination-info"></span>
+          <div class="pagination-controls">
+            <button type="button" class="btn-secondary" id="prevPageBtn">Previous</button>
+            <button type="button" class="btn-secondary" id="nextPageBtn">Next</button>
+          </div>
+        </div>
       </section>
 
+      <!-- 7. Goals -->
       <section class="card">
         <h2>Your goals</h2>
         <form id="goalsForm">
@@ -349,76 +399,28 @@
               <input id="net_diff_target" name="net_diff_target" type="number" required />
             </div>
           </div>
-          <label for="water_ml_target">Water target (ml)</label>
-          <input id="water_ml_target" name="water_ml_target" type="number" min="1" required />
           <div class="actions">
             <button type="submit" class="btn-primary">Save goals</button>
           </div>
         </form>
       </section>
-
-      <section class="card">
-        <h2>Log your day</h2>
-        <form id="logForm">
-          <label for="date">Date</label>
-          <input id="date" name="date" type="date" required />
-
-          <label for="diet_summary">What did you eat?</label>
-          <textarea id="diet_summary" name="diet_summary" required placeholder="e.g. poha, sandwich, eggs"></textarea>
-
-          <div class="field-row">
-            <div>
-              <label for="intake_kcal">Intake (kcal)</label>
-              <input id="intake_kcal" name="intake_kcal" type="number" min="0" required />
-            </div>
-            <div>
-              <label for="burn_kcal">Burn (kcal)</label>
-              <input id="burn_kcal" name="burn_kcal" type="number" min="0" required />
-            </div>
-          </div>
-
-          <div class="field-row">
-            <div>
-              <label for="protein_g">Protein (g)</label>
-              <input id="protein_g" name="protein_g" type="number" min="0" required />
-            </div>
-            <div>
-              <label for="steps">Steps</label>
-              <input id="steps" name="steps" type="number" min="0" required />
-            </div>
-          </div>
-
-          <div class="field-row">
-            <div>
-              <label for="water_ml">Water (ml)</label>
-              <input id="water_ml" name="water_ml" type="number" min="0" value="0" />
-            </div>
-            <div>
-              <label for="net_diff">Net diff (auto)</label>
-              <input id="net_diff" name="net_diff" type="number" readonly class="readonly" />
-            </div>
-          </div>
-
-          <div class="actions">
-            <button type="submit" class="btn-primary">Save daily log</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="card">
-        <h2>Weekly overview</h2>
-        <canvas id="weeklyChart" height="120"></canvas>
-        <p id="weeklyStats">—</p>
-      </section>
-
-      <section class="card">
-        <h2>History</h2>
-        <div id="tableWrap" class="table-wrap">
-          <p class="empty">Load the dashboard to see history.</p>
-        </div>
-      </section>
     </div>
+
+    <style>
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+    </style>
 
     <script src="/app.js"></script>
   </body>
 </html>
+

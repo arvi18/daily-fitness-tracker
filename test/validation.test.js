@@ -32,10 +32,6 @@ describe("validateDailyLog", () => {
     assert.match(validateDailyLog({ ...valid, net_diff: 0 }), /net_diff/);
   });
 
-  it("validates optional water_ml", () => {
-    assert.equal(validateDailyLog({ ...valid, water_ml: 2000 }), null);
-    assert.match(validateDailyLog({ ...valid, water_ml: -1 }), /water_ml/);
-  });
 });
 
 describe("validateGoals", () => {
@@ -46,7 +42,6 @@ describe("validateGoals", () => {
         protein_g_target: 100,
         intake_kcal_max: 2200,
         net_diff_target: -300,
-        water_ml_target: 2500,
       }),
       null
     );

@@ -1,12 +1,54 @@
+const TOKEN_KEY = "fitness_api_token";
+const TOKEN_EXPIRY_KEY = "fitness_api_token_expires";
+const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const PAGE_SIZE = 10;
+
 const tokenInput = document.getElementById("apiToken");
 const statusEl = document.getElementById("status");
+const jsonInput = document.getElementById("jsonInput");
 const goalsForm = document.getElementById("goalsForm");
-const logForm = document.getElementById("logForm");
 const tableWrap = document.getElementById("tableWrap");
 const weeklyCanvas = document.getElementById("weeklyChart");
 const streakEl = document.getElementById("streakStats");
+const paginationEl = document.getElementById("pagination");
+const paginationInfo = document.getElementById("paginationInfo");
 
 let chartInstance = null;
+let allLogs = [];
+let currentPage = 1;
+
+const LOG_FIELDS = [
+  "date",
+  "diet_summary",
+  "intake_kcal",
+  "protein_g",
+  "steps",
+  "burn_kcal",
+  "net_diff",
+];
+
+const defaultLogPayload = {
+  date: "",
+  diet_summary: "",
+  intake_kcal: 0,
+  protein_g: 0,
+  steps: 0,
+  burn_kcal: 0,
+  net_diff: 0,
+};
+
+/** Only these keys appear in the JSON editor (drops legacy water_ml etc.). */
+function toLogJsonFields(body) {
+  return {
+    date: body.date,
+    diet_summary: String(body.diet_summary ?? "").trim(),
+    intake_kcal: Number(body.intake_kcal),
+    protein_g: Number(body.protein_g),
+    steps: Number(body.steps),
+    burn_kcal: Number(body.burn_kcal),
+    net_diff: Number(body.net_diff),
+  };
+}
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -42,6 +84,40 @@ function getToken() {
   return tokenInput.value.trim();
 }
 
+function saveToken(token) {
+  const value = token.trim();
+  if (!value) {
+    clearSavedToken();
+    return;
+  }
+  localStorage.setItem(TOKEN_KEY, value);
+  localStorage.setItem(TOKEN_EXPIRY_KEY, String(Date.now() + TOKEN_TTL_MS));
+}
+
+function loadSavedToken() {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (!token) return "";
+
+  const expires = Number(localStorage.getItem(TOKEN_EXPIRY_KEY));
+  if (!expires) {
+    localStorage.setItem(TOKEN_EXPIRY_KEY, String(Date.now() + TOKEN_TTL_MS));
+    return token;
+  }
+
+  if (Date.now() > expires) {
+    clearSavedToken();
+    return "";
+  }
+
+  return token;
+}
+
+function clearSavedToken() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_EXPIRY_KEY);
+  tokenInput.value = "";
+}
+
 async function api(path, options = {}) {
   const headers = {
     ...(options.body ? { "Content-Type": "application/json" } : {}),
@@ -59,10 +135,86 @@ async function api(path, options = {}) {
   return data;
 }
 
-function calcNetDiff() {
-  const intake = Number(logForm.intake_kcal.value) || 0;
-  const burn = Number(logForm.burn_kcal.value) || 0;
-  logForm.net_diff.value = intake - burn;
+function isValidDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function validateLogPayload(body) {
+  const requiredFields = [
+    "date",
+    "diet_summary",
+    "intake_kcal",
+    "protein_g",
+    "steps",
+    "burn_kcal",
+    "net_diff",
+  ];
+
+  for (const field of requiredFields) {
+    if (body[field] === undefined || body[field] === null || body[field] === "") {
+      return `${field} is required`;
+    }
+  }
+
+  if (!isValidDate(body.date)) return "date must be in YYYY-MM-DD format";
+  if (typeof body.diet_summary !== "string") return "diet_summary must be a string";
+
+  const numberFields = ["intake_kcal", "protein_g", "steps", "burn_kcal", "net_diff"];
+  for (const field of numberFields) {
+    if (!Number.isInteger(Number(body[field]))) {
+      return `${field} must be an integer`;
+    }
+  }
+
+  const intake = Number(body.intake_kcal);
+  const burn = Number(body.burn_kcal);
+  const expectedNet = intake - burn;
+  if (Number(body.net_diff) !== expectedNet) {
+    return `net_diff must equal intake_kcal - burn_kcal (${expectedNet})`;
+  }
+
+  return null;
+}
+
+function parseLogJson() {
+  let body;
+  try {
+    body = JSON.parse(jsonInput.value);
+  } catch {
+    throw new Error("Invalid JSON — check commas and quotes");
+  }
+
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    throw new Error("JSON must be an object");
+  }
+
+  return body;
+}
+
+function normalizeLogPayload(body) {
+  const intake = Number(body.intake_kcal);
+  const burn = Number(body.burn_kcal);
+  return toLogJsonFields({
+    ...body,
+    net_diff: intake - burn,
+  });
+}
+
+function fillJsonTemplate(payload) {
+  jsonInput.value = JSON.stringify(toLogJsonFields(payload), null, 2);
+}
+
+function recalcNetInJson() {
+  const body = toLogJsonFields(parseLogJson());
+  body.net_diff = Number(body.intake_kcal) - Number(body.burn_kcal);
+  fillJsonTemplate(body);
+  setStatus(`net_diff set to ${body.net_diff}`, "info");
+}
+
+function fillTodayInJson() {
+  const body = toLogJsonFields(parseLogJson());
+  body.date = todayISO();
+  fillJsonTemplate(body);
 }
 
 function renderPeriodProgress(data, { panelId, messagesId, badgeId, rangeId, comparisonId }) {
@@ -179,13 +331,21 @@ function renderWeeklyChart(summary) {
     : "Log at least one day this week to see averages.";
 }
 
-function renderTable(rows) {
-  if (!rows.length) {
+function renderTable() {
+  if (!allLogs.length) {
     tableWrap.innerHTML = '<p class="empty">No logs found.</p>';
+    paginationEl.hidden = true;
     return;
   }
 
-  const tbody = rows
+  const totalPages = Math.ceil(allLogs.length / PAGE_SIZE);
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageRows = allLogs.slice(start, start + PAGE_SIZE);
+
+  const tbody = pageRows
     .map((row) => {
       const net = Number(row.net_diff);
       const netClass = net >= 0 ? "net-positive" : "net-negative";
@@ -195,7 +355,6 @@ function renderTable(rows) {
         <td>${row.intake_kcal}</td>
         <td>${row.protein_g}g</td>
         <td>${Number(row.steps).toLocaleString()}</td>
-        <td>${row.water_ml ?? 0} ml</td>
         <td class="${netClass}">${net > 0 ? "+" : ""}${net}</td>
       </tr>`;
     })
@@ -203,21 +362,15 @@ function renderTable(rows) {
 
   tableWrap.innerHTML = `<table>
     <thead><tr>
-      <th>date</th><th>diet</th><th>intake</th><th>protein</th><th>steps</th><th>water</th><th>net</th>
+      <th>date</th><th>diet</th><th>intake</th><th>protein</th><th>steps</th><th>net</th>
     </tr></thead>
     <tbody>${tbody}</tbody>
   </table>`;
-}
 
-function fillLogForm(log) {
-  logForm.date.value = log?.date || todayISO();
-  logForm.diet_summary.value = log?.diet_summary || "";
-  logForm.intake_kcal.value = log?.intake_kcal ?? "";
-  logForm.protein_g.value = log?.protein_g ?? "";
-  logForm.steps.value = log?.steps ?? "";
-  logForm.burn_kcal.value = log?.burn_kcal ?? "";
-  logForm.water_ml.value = log?.water_ml ?? 0;
-  calcNetDiff();
+  paginationEl.hidden = totalPages <= 1;
+  paginationInfo.textContent = `Page ${currentPage} of ${totalPages} · ${allLogs.length} total`;
+  document.getElementById("prevPageBtn").disabled = currentPage <= 1;
+  document.getElementById("nextPageBtn").disabled = currentPage >= totalPages;
 }
 
 function fillGoalsForm(goals) {
@@ -225,16 +378,17 @@ function fillGoalsForm(goals) {
   goalsForm.protein_g_target.value = goals.protein_g_target;
   goalsForm.intake_kcal_max.value = goals.intake_kcal_max;
   goalsForm.net_diff_target.value = goals.net_diff_target;
-  goalsForm.water_ml_target.value = goals.water_ml_target;
 }
 
-async function loadLogForForm() {
-  const date = logForm.date.value || todayISO();
+async function loadTodayIntoJson() {
+  const date = todayISO();
   try {
     const log = await api(`/api/daily-log/${date}`);
-    fillLogForm(log);
+    fillJsonTemplate(log);
+    setStatus(`Loaded log for ${date}`, "success");
   } catch {
-    fillLogForm({ date });
+    fillJsonTemplate({ ...defaultLogPayload, date });
+    setStatus(`No log for ${date} — blank template ready`, "info");
   }
 }
 
@@ -268,8 +422,9 @@ async function loadWeeklyChart() {
 }
 
 async function loadLogs() {
-  const rows = await api("/api/daily-log");
-  renderTable(rows);
+  allLogs = await api("/api/daily-log");
+  currentPage = 1;
+  renderTable();
 }
 
 async function refreshDashboard({ quiet = false } = {}) {
@@ -278,39 +433,43 @@ async function refreshDashboard({ quiet = false } = {}) {
     return;
   }
 
+  saveToken(getToken());
+
   try {
     const goals = await api("/api/goals");
     fillGoalsForm(goals);
     await loadPeriodProgress();
     await loadWeeklyChart();
     await loadLogs();
-    await loadLogForForm();
     if (!quiet) setStatus("Dashboard updated", "success");
   } catch (err) {
     setStatus(err.message, "error");
   }
 }
 
-async function saveLog(event) {
-  event.preventDefault();
+async function saveLog() {
   clearStatus();
-  calcNetDiff();
 
-  const payload = {
-    date: logForm.date.value,
-    diet_summary: logForm.diet_summary.value.trim(),
-    intake_kcal: Number(logForm.intake_kcal.value),
-    protein_g: Number(logForm.protein_g.value),
-    steps: Number(logForm.steps.value),
-    burn_kcal: Number(logForm.burn_kcal.value),
-    net_diff: Number(logForm.net_diff.value),
-    water_ml: Number(logForm.water_ml.value) || 0,
-  };
+  let body;
+  try {
+    body = normalizeLogPayload(parseLogJson());
+  } catch (err) {
+    setStatus(err.message, "error");
+    return;
+  }
+
+  const error = validateLogPayload(body);
+  if (error) {
+    setStatus(error, "error");
+    return;
+  }
+
+  fillJsonTemplate(body);
 
   try {
     const result = await api("/api/daily-log", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
     });
     setStatus(result.message, "success");
     await refreshDashboard({ quiet: true });
@@ -328,7 +487,6 @@ async function saveGoals(event) {
     protein_g_target: Number(goalsForm.protein_g_target.value),
     intake_kcal_max: Number(goalsForm.intake_kcal_max.value),
     net_diff_target: Number(goalsForm.net_diff_target.value),
-    water_ml_target: Number(goalsForm.water_ml_target.value),
   };
 
   try {
@@ -343,30 +501,52 @@ async function saveGoals(event) {
   }
 }
 
-const savedToken = localStorage.getItem("fitness_api_token");
-if (savedToken) tokenInput.value = savedToken;
+const saved = loadSavedToken();
+if (saved) tokenInput.value = saved;
 
-tokenInput.addEventListener("input", () => {
-  localStorage.setItem("fitness_api_token", tokenInput.value);
+fillJsonTemplate({ ...defaultLogPayload, date: todayISO() });
+
+tokenInput.addEventListener("input", () => saveToken(tokenInput.value));
+tokenInput.addEventListener("change", () => saveToken(tokenInput.value));
+
+document.getElementById("saveLogBtn").addEventListener("click", saveLog);
+document.getElementById("recalcNetBtn").addEventListener("click", () => {
+  try {
+    recalcNetInJson();
+  } catch (err) {
+    setStatus(err.message, "error");
+  }
 });
-
-logForm.date.value = todayISO();
-
-["intake_kcal", "burn_kcal"].forEach((name) => {
-  logForm[name].addEventListener("input", calcNetDiff);
-});
-
-logForm.date.addEventListener("change", () => loadLogForForm());
-
-document.getElementById("refreshBtn").addEventListener("click", () => refreshDashboard());
 document.getElementById("todayBtn").addEventListener("click", () => {
-  logForm.date.value = todayISO();
-  loadLogForForm();
-  refreshDashboard();
+  try {
+    fillTodayInJson();
+  } catch (err) {
+    setStatus(err.message, "error");
+  }
 });
-logForm.addEventListener("submit", saveLog);
+document.getElementById("loadTodayBtn").addEventListener("click", () => {
+  if (!getToken()) {
+    setStatus("Enter your API token first", "error");
+    return;
+  }
+  loadTodayIntoJson().catch((err) => setStatus(err.message, "error"));
+});
+document.getElementById("refreshBtn").addEventListener("click", () => refreshDashboard());
+document.getElementById("clearTokenBtn").addEventListener("click", () => {
+  clearSavedToken();
+  setStatus("Saved token cleared", "info");
+});
+document.getElementById("prevPageBtn").addEventListener("click", () => {
+  currentPage -= 1;
+  renderTable();
+});
+document.getElementById("nextPageBtn").addEventListener("click", () => {
+  currentPage += 1;
+  renderTable();
+});
 goalsForm.addEventListener("submit", saveGoals);
 
 if (getToken()) {
   refreshDashboard({ quiet: true });
 }
+

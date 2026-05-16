@@ -11,7 +11,6 @@ const goalsRow = {
   protein_g_target: 100,
   intake_kcal_max: 2200,
   net_diff_target: -300,
-  water_ml_target: 2500,
 };
 
 const logs = new Map();
@@ -34,7 +33,6 @@ function createMockDb() {
           protein_g_target: args[1],
           intake_kcal_max: args[2],
           net_diff_target: args[3],
-          water_ml_target: args[4],
         });
         return { rows: [] };
       }
@@ -48,7 +46,6 @@ function createMockDb() {
           steps,
           burn_kcal,
           net_diff,
-          water_ml,
         ] = args;
         logs.set(date, {
           date,
@@ -58,7 +55,6 @@ function createMockDb() {
           steps,
           burn_kcal,
           net_diff,
-          water_ml,
           created_at: "now",
           updated_at: "now",
         });
@@ -129,7 +125,6 @@ describe("API", () => {
         steps: 12000,
         burn_kcal: 2600,
         net_diff: -600,
-        water_ml: 2500,
       });
 
     assert.equal(res.status, 200);

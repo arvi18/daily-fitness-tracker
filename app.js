@@ -28,7 +28,6 @@ const logSelect = `
     steps,
     burn_kcal,
     net_diff,
-    water_ml,
     created_at,
     updated_at
   FROM daily_logs
@@ -92,19 +91,17 @@ export function createApp(db) {
         protein_g_target,
         intake_kcal_max,
         net_diff_target,
-        water_ml_target,
       } = req.body;
 
       await db.execute({
         sql: `
-          INSERT INTO goals (id, steps_target, protein_g_target, intake_kcal_max, net_diff_target, water_ml_target, updated_at)
-          VALUES (1, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          INSERT INTO goals (id, steps_target, protein_g_target, intake_kcal_max, net_diff_target, updated_at)
+          VALUES (1, ?, ?, ?, ?, CURRENT_TIMESTAMP)
           ON CONFLICT(id) DO UPDATE SET
             steps_target = excluded.steps_target,
             protein_g_target = excluded.protein_g_target,
             intake_kcal_max = excluded.intake_kcal_max,
             net_diff_target = excluded.net_diff_target,
-            water_ml_target = excluded.water_ml_target,
             updated_at = CURRENT_TIMESTAMP
         `,
         args: [
@@ -112,7 +109,6 @@ export function createApp(db) {
           Number(protein_g_target),
           Number(intake_kcal_max),
           Number(net_diff_target),
-          Number(water_ml_target),
         ],
       });
 
@@ -198,7 +194,6 @@ export function createApp(db) {
         steps,
         burn_kcal,
         net_diff,
-        water_ml,
       } = req.body;
 
       await db.execute({
@@ -211,10 +206,9 @@ export function createApp(db) {
             steps,
             burn_kcal,
             net_diff,
-            water_ml,
             updated_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
           ON CONFLICT(date) DO UPDATE SET
             diet_summary = excluded.diet_summary,
             intake_kcal = excluded.intake_kcal,
@@ -222,7 +216,6 @@ export function createApp(db) {
             steps = excluded.steps,
             burn_kcal = excluded.burn_kcal,
             net_diff = excluded.net_diff,
-            water_ml = excluded.water_ml,
             updated_at = CURRENT_TIMESTAMP
         `,
         args: [
@@ -233,9 +226,6 @@ export function createApp(db) {
           Number(steps),
           Number(burn_kcal),
           Number(net_diff),
-          water_ml === undefined || water_ml === null || water_ml === ""
-            ? 0
-            : Number(water_ml),
         ],
       });
 
