@@ -18,16 +18,6 @@ let chartInstance = null;
 let allLogs = [];
 let currentPage = 1;
 
-const LOG_FIELDS = [
-  "date",
-  "diet_summary",
-  "intake_kcal",
-  "protein_g",
-  "steps",
-  "burn_kcal",
-  "net_diff",
-];
-
 /** Only these keys appear in the JSON editor (drops legacy water_ml etc.). */
 function toLogJsonFields(body) {
   return {

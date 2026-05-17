@@ -36,10 +36,10 @@ describe("evaluateProgress", () => {
     assert.ok(metrics.every((m) => m.met));
   });
 
-  it("returns guidance when no log exists", () => {
-    const { score, messages } = evaluateProgress(null, goals);
+  it("returns empty metrics when no log exists", () => {
+    const { score, metrics } = evaluateProgress(null, goals);
     assert.equal(score.met, 0);
-    assert.ok(messages.length > 0);
+    assert.equal(metrics.length, 0);
   });
 });
 
