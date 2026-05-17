@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   buildMonthlyProgress,
   buildPeriodComparison,
+  buildPeriodMessages,
   buildWeeklyProgress,
   buildWeeklySummary,
   computeStreaks,
@@ -62,6 +63,20 @@ describe("buildWeeklySummary", () => {
     );
     assert.equal(summary.days.length, 7);
     assert.equal(summary.end, "2026-05-15");
+  });
+});
+
+describe("buildPeriodMessages", () => {
+  it("returns only a days-logged summary when there are logs", () => {
+    const messages = buildPeriodMessages({
+      periodLabel: "week",
+      start: "2026-05-11",
+      end: "2026-05-17",
+      daysLogged: 4,
+      totalDays: 7,
+    });
+    assert.equal(messages.length, 1);
+    assert.match(messages[0].text, /Logged 4 of 7 days this week/);
   });
 });
 

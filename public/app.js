@@ -2,6 +2,7 @@ const TOKEN_KEY = "fitness_api_token";
 const TOKEN_EXPIRY_KEY = "fitness_api_token_expires";
 const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const PAGE_SIZE = 10;
+const DIET_TRUNCATE_LEN = 48;
 
 const tokenInput = document.getElementById("apiToken");
 const statusEl = document.getElementById("status");
@@ -26,16 +27,6 @@ const LOG_FIELDS = [
   "burn_kcal",
   "net_diff",
 ];
-
-const defaultLogPayload = {
-  date: "",
-  diet_summary: "",
-  intake_kcal: 0,
-  protein_g: 0,
-  steps: 0,
-  burn_kcal: 0,
-  net_diff: 0,
-};
 
 /** Only these keys appear in the JSON editor (drops legacy water_ml etc.). */
 function toLogJsonFields(body) {
@@ -87,6 +78,26 @@ function formatRange(start, end) {
 
 function formatDatesInText(text) {
   return text.replace(/\b(\d{4}-\d{2}-\d{2})\b/g, (_, iso) => formatDisplayDate(iso));
+}
+
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function renderDietCell(summary) {
+  const text = escapeHtml(summary);
+  const truncated = summary.length > DIET_TRUNCATE_LEN;
+  const moreBtn = truncated
+    ? `<button type="button" class="diet-more-btn" aria-expanded="false">More</button>`
+    : "";
+  return `<td class="diet-cell col-diet${truncated ? " diet-truncated" : ""}">
+    <div class="diet-text">${text}</div>
+    ${moreBtn}
+  </td>`;
 }
 
 function formatChange(changePct) {
@@ -235,14 +246,17 @@ function fillJsonTemplate(payload) {
   jsonInput.value = JSON.stringify(toLogJsonFields(payload), null, 2);
 }
 
-function recalcNetInJson() {
-  const body = toLogJsonFields(parseLogJson());
-  body.net_diff = Number(body.intake_kcal) - Number(body.burn_kcal);
-  fillJsonTemplate(body);
-  setStatus(`net_diff set to ${body.net_diff}`, "info");
+function clearJsonInput() {
+  jsonInput.value = "";
+  clearStatus();
 }
 
 function fillTodayInJson() {
+  const trimmed = jsonInput.value.trim();
+  if (!trimmed) {
+    jsonInput.value = JSON.stringify({ date: todayISO() }, null, 2);
+    return;
+  }
   const body = toLogJsonFields(parseLogJson());
   body.date = todayISO();
   fillJsonTemplate(body);
@@ -380,20 +394,26 @@ function renderTable() {
     .map((row) => {
       const net = Number(row.net_diff);
       const netClass = net >= 0 ? "net-positive" : "net-negative";
+      const netLabel = net > 0 ? `+${net}` : String(net);
       return `<tr>
-        <td>${formatDisplayDate(row.date)}</td>
-        <td>${row.diet_summary}</td>
-        <td>${row.intake_kcal}</td>
-        <td>${row.protein_g}g</td>
-        <td>${Number(row.steps).toLocaleString()}</td>
-        <td class="${netClass}">${net > 0 ? "+" : ""}${net}</td>
+        <td class="col-date">${formatDisplayDateShort(row.date)}</td>
+        ${renderDietCell(row.diet_summary)}
+        <td class="col-intake">${row.intake_kcal}</td>
+        <td class="col-protein">${row.protein_g}g</td>
+        <td class="col-steps">${Number(row.steps).toLocaleString()}</td>
+        <td class="col-net ${netClass}">${netLabel}</td>
       </tr>`;
     })
     .join("");
 
-  tableWrap.innerHTML = `<table>
+  tableWrap.innerHTML = `<table class="history-table">
     <thead><tr>
-      <th>Date</th><th>diet</th><th>intake</th><th>protein</th><th>steps</th><th>net</th>
+      <th class="col-date">Date</th>
+      <th class="col-diet">Diet</th>
+      <th class="col-intake">Intake</th>
+      <th class="col-protein">Protein</th>
+      <th class="col-steps">Steps</th>
+      <th class="col-net">Net</th>
     </tr></thead>
     <tbody>${tbody}</tbody>
   </table>`;
@@ -409,18 +429,6 @@ function fillGoalsForm(goals) {
   goalsForm.protein_g_target.value = goals.protein_g_target;
   goalsForm.intake_kcal_max.value = goals.intake_kcal_max;
   goalsForm.net_diff_target.value = goals.net_diff_target;
-}
-
-async function loadTodayIntoJson() {
-  const date = todayISO();
-  try {
-    const log = await api(`/api/daily-log/${date}`);
-    fillJsonTemplate(log);
-    setStatus(`Loaded log for ${formatDisplayDate(date)}`, "success");
-  } catch {
-    fillJsonTemplate({ ...defaultLogPayload, date });
-    setStatus(`No log for ${formatDisplayDate(date)} — blank template ready`, "info");
-  }
 }
 
 async function loadPeriodProgress() {
@@ -535,32 +543,29 @@ async function saveGoals(event) {
 const saved = loadSavedToken();
 if (saved) tokenInput.value = saved;
 
-fillJsonTemplate({ ...defaultLogPayload, date: todayISO() });
+jsonInput.value = "";
 
 tokenInput.addEventListener("input", () => saveToken(tokenInput.value));
 tokenInput.addEventListener("change", () => saveToken(tokenInput.value));
 
-document.getElementById("saveLogBtn").addEventListener("click", saveLog);
-document.getElementById("recalcNetBtn").addEventListener("click", () => {
-  try {
-    recalcNetInJson();
-  } catch (err) {
-    setStatus(err.message, "error");
-  }
+tableWrap.addEventListener("click", (event) => {
+  const btn = event.target.closest(".diet-more-btn");
+  if (!btn) return;
+  const row = btn.closest("tr");
+  if (!row) return;
+  const expanded = row.classList.toggle("diet-expanded");
+  btn.textContent = expanded ? "Less" : "More";
+  btn.setAttribute("aria-expanded", String(expanded));
 });
+
+document.getElementById("saveLogBtn").addEventListener("click", saveLog);
+document.getElementById("clearJsonBtn").addEventListener("click", clearJsonInput);
 document.getElementById("todayBtn").addEventListener("click", () => {
   try {
     fillTodayInJson();
   } catch (err) {
     setStatus(err.message, "error");
   }
-});
-document.getElementById("loadTodayBtn").addEventListener("click", () => {
-  if (!getToken()) {
-    setStatus("Enter your API token first", "error");
-    return;
-  }
-  loadTodayIntoJson().catch((err) => setStatus(err.message, "error"));
 });
 document.getElementById("refreshBtn").addEventListener("click", () => refreshDashboard());
 document.getElementById("clearTokenBtn").addEventListener("click", () => {

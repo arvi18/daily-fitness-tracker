@@ -53,7 +53,7 @@ This section is the day-to-day playbook: how to sign in, paste your log from Gem
 | **Weekly overview** | Chart of the last 7 days |
 | **Latest week** | Goal progress vs last week (if prior data exists) |
 | **Latest month** | Goal progress vs last month (if prior data exists) |
-| **History** | Past logs, 10 per page |
+| **History** | Past logs, 10 per page; on phones, long diet notes show **More** to expand |
 | **Your goals** | Targets for steps, protein, calories, net deficit |
 
 You usually only need **Authentication** and **Log your day** each night. Check the week/month sections when you want a recap.
@@ -97,19 +97,17 @@ Designed for **evening logging**: you summarize the day in Gemini (or any chat),
 #### Step-by-step (every night)
 
 1. **Authentication** — token entered, dashboard refreshed once.
-2. **Log your day** — paste JSON into the big text box.
-3. Click **Recalc net_diff** if Gemini gave intake/burn but not net (or net looks wrong).
-4. Click **Save daily log**.
-5. Optional: scroll **Latest week** / **History** to confirm.
+2. **Log your day** — paste JSON into the big text box (starts empty; use **Clear** if you need a fresh box).
+3. Click **Save daily log** (`net_diff` is checked automatically; fix in JSON if it does not match intake − burn).
+4. Optional: scroll **Latest week** / **History** to confirm.
 
 #### Buttons in “Log your day”
 
 | Button | When to use |
 |--------|-------------|
 | **Save daily log** | After JSON looks correct — writes to Turso |
-| **Fill today** | Sets `"date"` to today’s date (`YYYY-MM-DD`) |
-| **Recalc net_diff** | Sets `net_diff = intake_kcal - burn_kcal` |
-| **Load today’s log** | Pulls existing row for today into the editor (to edit) |
+| **Fill today** | Sets `"date"` to today (`YYYY-MM-DD`); on an empty box, inserts only `{ "date": "..." }` |
+| **Clear** | Empties the text box so you can paste fresh JSON on your phone |
 
 #### Example JSON (copy and edit)
 
@@ -147,7 +145,7 @@ Designed for **evening logging**: you summarize the day in Gemini (or any chat),
 **Same date twice**
 
 - Saving again for the **same `date` overwrites** the previous row (update), it does not add values together.
-- Use **Load today’s log** to edit an entry you already saved.
+- To edit a past day, copy values from **History** (today is at the top) into the JSON box and save again with that `date`.
 
 #### Prompt idea for Gemini
 
@@ -166,7 +164,7 @@ Then copy the JSON block into **Log your day**.
 
 | Problem | Fix |
 |---------|-----|
-| `net_diff must equal intake_kcal - burn_kcal` | Click **Recalc net_diff** or fix the math |
+| `net_diff must equal intake_kcal - burn_kcal` | Set `net_diff` to intake minus burn in the JSON |
 | `Invalid JSON` | Check trailing commas, double quotes on keys |
 | `date must be in YYYY-MM-DD` | Use `2026-05-15`, not `15-05-2026` |
 | Save works but UI looks old | Hard refresh: **Ctrl+Shift+R** (cached JavaScript) |
